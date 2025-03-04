@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "37cd02fa7e8f4fa5a39e99b4d992c43b",
+    "content-hash": "a3f8a6f9f3e92910e1a2e7d4a8fea14c",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -811,6 +811,42 @@
                 "source": "https://github.com/dragonmantank/cron-expression/tree/v3.4.0"
             },
             "time": "2024-10-09T13:47:03+00:00"
+        },
+        {
+            "name": "echoshiki/wechat-auth",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "./packages/wechat-auth",
+                "reference": "d2ad46796f48c737c014f743ea6865f6ee41daa2"
+            },
+            "require": {
+                "illuminate/support": "^12.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Echoshiki\\WechatAuth\\Providers\\WechatAuthServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Echoshiki\\WechatAuth\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "echoshiki"
+                }
+            ],
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "egulias/email-validator",
