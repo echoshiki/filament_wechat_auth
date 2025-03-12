@@ -83,11 +83,11 @@ class User extends Authenticatable
     }
 
     /**
-     * 根据微信 openid 查询用户
+     * 根据微信 openid 查询关联的用户
      */
     public function scopeWithWechatUserOpenid($query, string $openid)
     {
-        return $query->whereHas('wechat_user', function ($q) use ($openid) {
+        return $query->whereHas('wechat_users', function ($q) use ($openid) {
             $q->where('openid', $openid);
         });
     }

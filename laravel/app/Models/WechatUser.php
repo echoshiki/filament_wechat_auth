@@ -17,7 +17,8 @@ class WechatUser extends Model
     ];
 
     protected $casts = [
-        'raw_data' => 'array'
+        'raw_data' => 'array',
+        'session_key' => 'encrypted'
     ];
 
     public function user() {
