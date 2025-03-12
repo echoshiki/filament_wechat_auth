@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('wechat_users', function (Blueprint $table) {
-            // 增添微信原始数据字段
-            $table->json('raw_data')->nullable()->comment('原始用户数据');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('phone')->nullable()->unique()->after('email_verified_at');
+            $table->timestamp('phone_verified_at')->nullable()->after('phone');
         });
     }
 
@@ -22,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('wechat_users', function (Blueprint $table) {
-            $table->dropColumn('raw_data');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['phone', 'phone_verified']);
         });
     }
 };

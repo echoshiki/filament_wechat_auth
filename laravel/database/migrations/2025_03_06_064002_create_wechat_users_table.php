@@ -15,12 +15,18 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->string('openid')->unique();
-            $table->string('phone')->nullable();
-            $table->string('nickname')->nullable();
-            $table->string('avatar')->nullable();
             $table->string('unionid')->unique()->nullable();
             $table->string('session_key')->nullable();
-            $table->timestamp('login_at')->nullable();
+            
+            // 微信特有属性
+            $table->json('raw_data')->nullable()->comment('原始微信数据');
+            $table->string('nickname')->nullable();
+            $table->string('avatar_url')->nullable();
+            $table->tinyInteger('gender')->nullable();
+            $table->string('country')->nullable();
+            $table->string('province')->nullable();
+            $table->string('city')->nullable();
+
             $table->softDeletes();
             $table->timestamps();
             
