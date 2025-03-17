@@ -85,22 +85,15 @@ class UserAuthServiceTest extends TestCase
             ->andReturn($this->sessionData);
 
         // 执行方法
-        $user = $this->userAuthService->handleLogin($this->code);
+        $wechatUser = $this->userAuthService->handleLoginInSilence($this->code);
 
-        // 断言 $user 变量是 User 类的实例
-        $this->assertInstanceOf(User::class, $user);
+        // 断言 $user 变量是 WechatUser 类的实例
+        $this->assertInstanceOf(WechatUser::class, $wechatUser);
+        $this->assertInstanceOf(User::class, $wechatUser->user);
         
-        // 断言数据库中存在对应的用户记录
-        $this->assertDatabaseHas('users', ['id' => $user->id]);
+        // 断言数据库中存在对应的微信用户和关联的用户
         $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
-
-        // 断言微信用户和用户关联
-        $this->assertDatabaseHas('wechat_users', ['user_id' => $user->id]);
-
-        // 验证返回的用户对象与传入的原始参数是否一致
-        $wechatUser = $this->wechatUser->where('openid', $this->sessionData['open_id'])->first();
-        $this->assertEquals($this->sessionData['open_id'], $wechatUser->openid);
-        $this->assertEquals($this->sessionData['session_key'], $wechatUser->session_key);
+        $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
     }
 
     /**
@@ -123,20 +116,18 @@ class UserAuthServiceTest extends TestCase
         ]);
 
         // 执行方法
-        $user = $this->userAuthService->handleLogin($this->code);
+        $wechatUser = $this->userAuthService->handleLoginInSilence($this->code);
 
-        // 断言结果
-        $this->assertInstanceOf(User::class, $user);
-        $this->assertDatabaseHas('users', ['id' => $user->id]);
-
-        // 断言微信用户和用户关联
-        $this->assertDatabaseHas('wechat_users', [
-            'user_id' => $user->id,
-            'openid' => $this->sessionData['open_id'],
-        ]);
+        // 断言 $user 变量是 WechatUser 类的实例
+        $this->assertInstanceOf(WechatUser::class, $wechatUser);
+        $this->assertInstanceOf(User::class, $wechatUser->user);
+        
+        // 断言数据库中存在对应的微信用户和关联的用户
+        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
+        $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
     }
 
-    /**
+    /**·
      * 场景：当微信用户存在且已关联用户时，直接返回用户
      */
     public function test_handle_login_when_wechat_user_exist_and_related()
@@ -164,15 +155,15 @@ class UserAuthServiceTest extends TestCase
         ]);
 
         // 执行方法
-        $user = $this->userAuthService->handleLogin($this->code);
+        $wechatUser = $this->userAuthService->handleLoginInSilence($this->code);
 
-        // 断言结果
-        $this->assertInstanceOf(User::class, $user);
-        $this->assertDatabaseHas('users', ['id' => $user->id]);
-        $this->assertDatabaseHas('wechat_users', ['id' => $wechatUser->id]);
-
-        // 断言微信用户和用户关联
-        $this->assertDatabaseHas('wechat_users', ['user_id' => $user->id]);
+        // 断言 $user 变量是 WechatUser 类的实例
+        $this->assertInstanceOf(WechatUser::class, $wechatUser);
+        $this->assertInstanceOf(User::class, $wechatUser->user);
+        
+        // 断言数据库中存在对应的微信用户和关联的用户
+        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
+        $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
     }
 
     /**

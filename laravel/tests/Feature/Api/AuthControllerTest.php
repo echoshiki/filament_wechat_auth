@@ -77,36 +77,40 @@ class AuthControllerTest extends TestCase
         Mockery::close();
     }
 
-    public function test_mini_login_new_user()
+    // 测试静默登录控制器（新用户）
+    // 预期返回加密后的加密后的 openid & isBound
+    public function test_mini_login_silence_new_user()
     {
-        $response = $this->postJson('api/v1/login', [
+        $response = $this->postJson('api/v1/login-silence', [
             'code' => $this->code
         ]);
 
-        // 断言是否返回 token 是否成功
-        $response->assertStatus(200)->assertJsonStructure(['token']);
-
-        $wechatUser = $this->wechatUser->where('openid', $this->sessionData['open_id'])->first();
+        // 断言是否返回了符合预期的数据键
+        $response->assertStatus(200)->assertJsonStructure(['openid', 'isBound']);
 
         // 断言数据库中存在对应的微信用户记录
+        $wechatUser = $this->wechatUser->where('openid', $this->sessionData['open_id'])->first();
         $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
 
         // 是否存在关联用户
         $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
 
-        // 断言 token 是否正确
-        $this->assertDatabaseHas('personal_access_tokens', ['tokenable_id' => $wechatUser->user_id]);
-
+        // 断言 isBound 是否正确
+        $user = $this->user->where('id', $wechatUser->user_id)->first();
+        $this->assertEquals($user->phone, $response->json('isBound') ? $user->phone : null);
     }
 
-    public function test_mini_login_exist_user()
+    // 测试静默登录控制器（用户存在）
+    // 预期返回加密后的加密后的 openid & isBound
+    public function test_mini_login_silence_exist_user()
     {
         // 创建测试用户
         $user = $this->user->create([
             'name' => '微信测试用户',
             'email' => 'test@example.com',
             'email_verified_at' => now(),
-            'password' => '123123'
+            'password' => '123123',
+            'phone' => '13218900000'
         ]);
 
         $wechatUser = $this->wechatUser->create([
@@ -115,57 +119,81 @@ class AuthControllerTest extends TestCase
             'session_key' => 'test_session_key'
         ]);
 
-        $response = $this->postJson('api/v1/login', [
+        $response = $this->postJson('api/v1/login-silence', [
             'code' => $this->code
         ]);
 
-        // 断言是否返回 token 是否成功
-        $response->assertStatus(200)->assertJsonStructure(['token']);
+        // 断言是否返回了符合预期的数据键
+        $response->assertStatus(200)->assertJsonStructure(['openid', 'isBound']);
 
-        // 是否有重复创建
-        $count = $this->user->count();
-        $this->assertEquals(1, $count);
+        // 断言 isBound 是否正确
+        $user = $this->user->where('id', $wechatUser->user_id)->first();
+        $this->assertEquals($user->phone, $response->json('isBound') ? $user->phone : null);
 
-        $count = $this->wechatUser->count();
-        $this->assertEquals(1, $count);
+        // 是否有重复创建 WechatUser
+        $wechatUser = $this->wechatUser->where('openid', 'test_open_id')->get();
+        $this->assertCount(1, $wechatUser);
+
+        // 是否有重复创建 User
+        $user = $this->user->where('id', $wechatUser->first()->user_id)->get();
+        $this->assertCount(1, $user);
     }
 
-    public function test_bind_without_login()
+    // 测试未绑定手机号用户的登录
+    // 预期更新手机号后，返回登录态 token 和用户信息
+    public function test_mini_login_on_bound_new_user()
     {
-        $response = $this->postJson('api/v1/bind', [
-            'code' => $this->code
-        ]);
-
-        // 断言是否失败
-        $response->assertStatus(401);
-    }
-
-    public function test_mini_bind_phone_number()
-    {
-        // 创建测试用户
         $user = $this->user->create([
             'name' => '微信测试用户',
             'email' => 'test@example.com',
             'email_verified_at' => now(),
             'password' => '123123',
-            'phone' => null,
-            'phone_verified_at' => null
+            'phone' => null
         ]);
 
-        // 生成 token
-        $token = $user->createToken('mini')->plainTextToken;
-
-        // 创建携带 token 的请求
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/v1/bind', [
-            'code' => $this->code
+        $wechatUser = $this->wechatUser->create([
+            'user_id' => $user->id,
+            'openid' => 'test_open_id',
+            'session_key' => 'test_session_key'
         ]);
 
-        // 断言是否返回 token 是否成功
-        $response->assertStatus(200)->assertJsonStructure(['user']);
+        $response = $this->postJson('api/v1/login-bound', [
+            'code' => $this->code,
+            'openid' => encrypt($wechatUser->openid)
+        ]);
 
         // 断言此用户的手机号码有没有成功更新
-        $this->assertDatabaseHas('users', ['id' => $user->id, 'phone' => '13800138000']);  
+        $this->assertDatabaseHas('users', ['id' => $response->json('user.id'), 'phone' => '13800138000']);
+        
+        // 断言是否返回了符合预期的数据键
+        $response->assertStatus(200)->assertJsonStructure(['user', 'token']);
+    }
+
+    // 测试已经存在且绑定了手机号的用户登录
+    // 预期返回登录态 token & 用户信息
+    public function test_mini_login()
+    {
+        // 创建绑定了手机号的用户
+        $user = $this->user->create([
+            'name' => '微信测试用户',
+            'email' => 'test@example.com',
+            'email_verified_at' => now(),
+            'password' => '123123',
+            'phone' => '13800138000'
+        ]);
+
+        $wechatUser = $this->wechatUser->create([
+            'user_id' => $user->id,
+            'openid' => 'test_open_id',
+            'session_key' => 'test_session_key'
+        ]);
+
+        // 传入 openid
+        $response = $this->postJson('api/v1/login', [
+            'openid' => encrypt($wechatUser->openid)
+        ]);
+
+        // 断言是否返回了符合预期的数据键
+        $response->assertStatus(200)->assertJsonStructure(['user', 'token']);
     }
 }

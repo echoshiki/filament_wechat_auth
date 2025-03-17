@@ -23,7 +23,7 @@ class UserAuthService
      * @param string $code
      * @return User
      */
-    public function handleLogin(string $code) 
+    public function handleLoginInSilence(string $code) 
     {
         // 获取微信会话
         $session = $this->wechatService->getSession($code);
@@ -49,7 +49,7 @@ class UserAuthService
             return $this->createUserAndUpdateWechatUser($wechatUser);
         }
 
-        return $wechatUser->user;
+        return $wechatUser;
     }
 
     /**
@@ -57,17 +57,18 @@ class UserAuthService
      * @param array $session
      * @return User
      */
-    private function createUserWithWechatUser(array $session): User
+    private function createUserWithWechatUser(array $session): WechatUser
     {
         try {
             return DB::transaction(function () use ($session) {
                 $user = $this->userModel->create(self::buildNewUserAttributes());
-                $this->wechatUserModel->create([
+                $wechatUser = $this->wechatUserModel->create([
                     'user_id' => $user->id,
                     'openid' => $session['open_id'],
                     'session_key' => $session['session_key']
                 ]);
-                return $user;
+                $wechatUser->load('user');
+                return $wechatUser;
             });
         } catch (\Exception $e) {
             Log::error('创建微信用户和关联用户失败', ['session' => $session, 'error' => $e->getMessage()]);
@@ -80,14 +81,15 @@ class UserAuthService
      * @param WechatUser $wechatUser
      * @return User
      */
-    private function createUserAndUpdateWechatUser(WechatUser $wechatUser): User
+    private function createUserAndUpdateWechatUser(WechatUser $wechatUser): WechatUser
     {
        try {
             return DB::transaction(function () use ($wechatUser) {
                 $user = $this->userModel->create(self::buildNewUserAttributes());
                 $wechatUser->user_id = $user->id;
                 $wechatUser->save();
-                return $user;
+                $wechatUser->load('user');
+                return $wechatUser;
             });
        } catch (\Exception $e) {
             Log::error('创建用户并更新关联微信用户失败', ['wechatUser' => $wechatUser, 'error' => $e->getMessage()]);
@@ -134,6 +136,30 @@ class UserAuthService
         return $user->createToken($deviceName)->plainTextToken;
     }
 
+
+    /**
+     * 登录：通过 openid 绑定手机号码
+     * @param string $openid
+     * @return User
+     */
+    public function handleLoginOnBound(string $openid, string $code)
+    {
+        // 数据验证
+        if (empty($openid)) {
+            throw new \Exception('丢失重要参数 openid');
+        }
+
+        $user = $this->userModel->withWechatUserOpenid($openid)->first();
+
+        if (!$user) {
+            throw new \Exception('微信用户的关联用户不存在');
+        }
+
+        $this->bindPhoneNumber($code, $user);
+
+        return $user;
+    }
+
     /**
      * 绑定手机号
      * 登录后绑定手机号
@@ -155,6 +181,26 @@ class UserAuthService
         $user->phone = $phoneInfo['phone_info']['phoneNumber'];
         $user->phone_verified_at = now();
         $user->save();
+
+        return $user;
+    }
+
+    public function handleLogin(string $openid)
+    {
+        // 数据验证
+        if (empty($openid)) {
+            throw new \Exception('丢失重要参数 openid');
+        }
+
+        $user = $this->userModel->withWechatUserOpenid($openid)->first();
+
+        if (!$user) {
+            throw new \Exception('微信用户的关联用户不存在');
+        }
+
+        if ($user->phone === null) {
+            throw new \Exception('未绑定手机号');
+        }
 
         return $user;
     }
