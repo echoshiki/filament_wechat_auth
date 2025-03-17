@@ -17,6 +17,12 @@ class UserAuthService
         private WechatUser $wechatUserModel
     ) {}
 
+    /**
+     * 处理微信登录
+     * 会话 session 信息，不涉及手机号
+     * @param string $code
+     * @return User
+     */
     public function handleLogin(string $code) 
     {
         // 获取微信会话
@@ -48,6 +54,8 @@ class UserAuthService
 
     /**
      * 创建新用户和微信用户并关联
+     * @param array $session
+     * @return User
      */
     private function createUserWithWechatUser(array $session): User
     {
@@ -57,8 +65,7 @@ class UserAuthService
                 $this->wechatUserModel->create([
                     'user_id' => $user->id,
                     'openid' => $session['open_id'],
-                    'session_key' => $session['session_key'],
-                    'raw_data' => $session
+                    'session_key' => $session['session_key']
                 ]);
                 return $user;
             });
@@ -70,11 +77,13 @@ class UserAuthService
 
     /**
      * 创建新用户并更新关联已经存在的微信用户
+     * @param WechatUser $wechatUser
+     * @return User
      */
     private function createUserAndUpdateWechatUser(WechatUser $wechatUser): User
     {
        try {
-            return DB::transction(function () use ($wechatUser) {
+            return DB::transaction(function () use ($wechatUser) {
                 $user = $this->userModel->create(self::buildNewUserAttributes());
                 $wechatUser->user_id = $user->id;
                 $wechatUser->save();
@@ -88,6 +97,7 @@ class UserAuthService
 
     /**
      * 生成新用户的属性
+     * @return array
      */
     private function buildNewUserAttributes() 
     {
@@ -113,4 +123,40 @@ class UserAuthService
     {
         return fake()->unique()->safeEmail();
     }
+
+    /**
+     * 生成 api token
+     * @param User $user
+     * @return string
+     */
+    public function generateToken(User $user, string $deviceName = "mini") 
+    {
+        return $user->createToken($deviceName)->plainTextToken;
+    }
+
+    /**
+     * 绑定手机号
+     * 登录后绑定手机号
+     * @param string $code
+     * @return User
+     */
+    public function bindPhoneNumber(string $code, User $user) 
+    {
+        // 获取手机号
+        $phoneInfo = $this->wechatService->getPhoneNumber($code);
+
+        // 数据验证
+        if (empty($phoneInfo['phone_info'])) {
+            Log::error('获取手机号失败', ['code' => $code, 'phoneInfo' => $phoneInfo]);
+            throw new \Exception('获取手机号失败');
+        }
+
+        // 更新手机号
+        $user->phone = $phoneInfo['phone_info']['phoneNumber'];
+        $user->phone_verified_at = now();
+        $user->save();
+
+        return $user;
+    }
+
 }

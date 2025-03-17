@@ -19,6 +19,11 @@ class UserAuthServiceTest extends TestCase
     private $userAuthService;
     private $user;
     private $wechatUser;
+    
+    // 公共测试数据
+    private $code;
+    private $sessionData;
+    private $phoneData;
 
     protected function setUp(): void
     {
@@ -37,9 +42,30 @@ class UserAuthServiceTest extends TestCase
             $this->user,
             $this->wechatUser
         );
+
+        // 公共测试数据
+        $this->code = 'test_code';
+        $this->sessionData = [
+            "errcode" => 0,
+            "errmsg" => "ok",
+            'open_id' => 'test_open_id',
+            'session_key' => 'test_session_key'  
+        ];
+        $this->phoneData = [
+            "errcode" => 0,
+            "errmsg" => "ok",
+            "phone_info" => [
+                "phoneNumber" => "13800138000",
+                "purePhoneNumber" => "13800138000",
+                "countryCode" => 86,
+                "watermark" => [
+                    "timestamp" => 1637744274,
+                    "appid" => "xxxx"
+                ]
+            ]
+        ];
     }
     
-
     protected function tearDown(): void
     {
         Mockery::close();
@@ -47,41 +73,163 @@ class UserAuthServiceTest extends TestCase
     }
 
     /**
-     * 当微信用户不存在时
+     * 场景：当微信用户不存在时（关联用户自然也不存在）
      */
     public function test_handle_login_when_wechat_user_not_exist()
     {
-        // 准备测试数据
-        $code = 'test_code';
-        $sessionData = [
-            "errcode" => 0,
-            "errmsg" => "ok",
-            'open_id' => 'test_openid',
-            'session_key' => 'test_session_key'  
-        ];
-
         // 模拟 getSession 方法
         $this->wechatServiceMock
             ->shouldReceive('getSession')
-            ->with($code)
+            ->with($this->code)
             ->once()
-            ->andReturn($sessionData);
+            ->andReturn($this->sessionData);
 
         // 执行方法
-        $user = $this->userAuthService->handleLogin($code);
+        $user = $this->userAuthService->handleLogin($this->code);
 
-        // 验证结果
+        // 断言 $user 变量是 User 类的实例
+        $this->assertInstanceOf(User::class, $user);
+        
+        // 断言数据库中存在对应的用户记录
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
+
+        // 断言微信用户和用户关联
+        $this->assertDatabaseHas('wechat_users', ['user_id' => $user->id]);
+
+        // 验证返回的用户对象与传入的原始参数是否一致
+        $wechatUser = $this->wechatUser->where('openid', $this->sessionData['open_id'])->first();
+        $this->assertEquals($this->sessionData['open_id'], $wechatUser->openid);
+        $this->assertEquals($this->sessionData['session_key'], $wechatUser->session_key);
+    }
+
+    /**
+     * 场景：当微信用户存在但未关联用户时，创建并关联新用户
+     */
+    public function test_handle_login_when_wechat_user_exist_but_not_related()
+    {
+        // 模拟 getSession 方法
+        $this->wechatServiceMock
+            ->shouldReceive('getSession')
+            ->with($this->code)
+            ->once()
+            ->andReturn($this->sessionData);
+
+        // 创建一个微信用户
+        $this->wechatUser->create([
+            'user_id' => null,
+            'openid' => $this->sessionData['open_id'],
+            'session_key' => $this->sessionData['session_key']
+        ]);
+
+        // 执行方法
+        $user = $this->userAuthService->handleLogin($this->code);
+
+        // 断言结果
         $this->assertInstanceOf(User::class, $user);
         $this->assertDatabaseHas('users', ['id' => $user->id]);
-        $this->assertDatabaseHas('wechat_users', ['openid' => $sessionData['openid']]);
 
-        $wechatUser = $this->wechatUser->where('openid', $sessionData['openid'])->first();
-    
-        print_r($wechatUser->toArray());
+        // 断言微信用户和用户关联
+        $this->assertDatabaseHas('wechat_users', [
+            'user_id' => $user->id,
+            'openid' => $this->sessionData['open_id'],
+        ]);
+    }
 
-        // 验证返回的用户对象
-        // $this->assertEquals($sessionData['openid'], $user->openid);
-        // $this->assertEquals($sessionData['session_key'], $user->session_key);
+    /**
+     * 场景：当微信用户存在且已关联用户时，直接返回用户
+     */
+    public function test_handle_login_when_wechat_user_exist_and_related()
+    {
+        // 模拟 getSession 方法
+        $this->wechatServiceMock
+            ->shouldReceive('getSession')
+            ->with($this->code)
+            ->once()
+            ->andReturn($this->sessionData);
+
+        // 创建一个新用户
+        $user = $this->user->create([
+            'name' => '微信测试用户',
+            'password' => '123123',
+            'email' => 'test@example.com',
+            'email_verified_at' => now(),
+        ]);    
+
+        // 创建一个微信用户并关联上面的用户
+        $wechatUser = $this->wechatUser->create([
+            'user_id' => $user->id,
+            'openid' => $this->sessionData['open_id'],
+            'session_key' => $this->sessionData['session_key']
+        ]);
+
+        // 执行方法
+        $user = $this->userAuthService->handleLogin($this->code);
+
+        // 断言结果
+        $this->assertInstanceOf(User::class, $user);
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('wechat_users', ['id' => $wechatUser->id]);
+
+        // 断言微信用户和用户关联
+        $this->assertDatabaseHas('wechat_users', ['user_id' => $user->id]);
+    }
+
+    /**
+     * 场景：绑定手机号
+     */
+    public function test_handle_bind_phone_number()
+    {
+        // 模拟 getPhoneNumber 方法
+        $this->wechatServiceMock
+            ->shouldReceive('getPhoneNumber')
+            ->with($this->code)
+            ->once()
+            ->andReturn($this->phoneData);
+
+        // 创建一个没有电话号码的测试用户
+        $user = $this->user->create([
+            'name' => '微信测试用户',
+            'password' => '123123',
+            'email' => 'test@example.com',
+            'email_verified_at' => now(),
+        ]);
+
+        // 执行方法
+        $user = $this->userAuthService->bindPhoneNumber($this->code, $user);
+
+        // 断言 $user 变量是 User 类的实例
+        $this->assertInstanceOf(User::class, $user);
+        
+        // 断言数据库中存在对应的用户记录
+        $this->assertDatabaseHas('users', ['phone' => $this->phoneData['phone_info']['phoneNumber']]);
+        
+        // 验证返回的用户对象与传入的原始参数是否一致
+        $this->assertEquals($this->phoneData['phone_info']['phoneNumber'], $user->phone);
+        $this->assertNotNull($user->phone_verified_at);
+    }
+
+    /**
+     * 场景：生成 token
+     */
+    public function test_generate_token()
+    {
+        // 创建一个测试用户
+        $user = $this->user->create([
+            'name' => '微信测试用户',
+            'password' => '123123',
+            'email' => 'test@example.com',
+            'email_verified_at' => now(),
+        ]);
+
+        // 执行方法
+        $token = $this->userAuthService->generateToken($user);
+
+        // 断言 token 不为空
+        $this->assertNotEmpty($token);
+
+        // 断言 token 可以正确解析
+        $this->assertDatabaseHas('personal_access_tokens', ['tokenable_id' => $user->id]);
     }
 
 }

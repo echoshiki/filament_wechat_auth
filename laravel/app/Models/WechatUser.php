@@ -13,7 +13,7 @@ class WechatUser extends Model
 
     protected $fillable = [
         'openid', 'unionid', 'session_key', 
-        'nickname', 'avatar', 'raw_data'
+        'nickname', 'avatar', 'raw_data', 'user_id'
     ];
 
     protected $casts = [
