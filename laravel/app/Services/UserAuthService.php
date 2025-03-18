@@ -18,7 +18,7 @@ class UserAuthService
     ) {}
 
     /**
-     * 处理微信登录
+     * 处理微信静默登录
      * 会话 session 信息，不涉及手机号
      * @param string $code
      * @return User
@@ -55,7 +55,7 @@ class UserAuthService
     /**
      * 创建新用户和微信用户并关联
      * @param array $session
-     * @return User
+     * @return WechatUser
      */
     private function createUserWithWechatUser(array $session): WechatUser
     {
@@ -79,7 +79,7 @@ class UserAuthService
     /**
      * 创建新用户并更新关联已经存在的微信用户
      * @param WechatUser $wechatUser
-     * @return User
+     * @return WechatUser
      */
     private function createUserAndUpdateWechatUser(WechatUser $wechatUser): WechatUser
     {
@@ -148,15 +148,11 @@ class UserAuthService
         if (empty($openid)) {
             throw new \Exception('丢失重要参数 openid');
         }
-
         $user = $this->userModel->withWechatUserOpenid($openid)->first();
-
         if (!$user) {
             throw new \Exception('微信用户的关联用户不存在');
         }
-
         $this->bindPhoneNumber($code, $user);
-
         return $user;
     }
 
