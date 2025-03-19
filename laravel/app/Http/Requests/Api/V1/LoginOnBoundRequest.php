@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\AuthRequest;
 
-class MiniLoginRequest extends FormRequest
+class LoginOnBoundRequest extends AuthRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,7 +22,8 @@ class MiniLoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => 'required|string'
+            'code' => 'required|string',
+            'openid' => 'required|string'
         ];
     }
 }

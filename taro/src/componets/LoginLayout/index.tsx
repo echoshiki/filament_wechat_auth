@@ -4,11 +4,24 @@ import { useState } from "react";
 import Taro from "@tarojs/taro";
 import useAuthStore from "@/stores/auth";
 
-const LoginActionSheet = ({ isVisible, setIsVisible }) => {
+/**
+ * 登录弹窗
+ * 通过 isBound 判断渲染按钮触发方式
+ * @param isVisible 是否显示
+ * @param setIsVisible 设置是否显示
+ */
+
+interface LoginActionSheetProps {
+    isVisible: boolean;
+    setIsVisible: (isVisible: boolean) => void;
+}
+
+const LoginActionSheet = ({ isVisible, setIsVisible }: LoginActionSheetProps) => {
     // 用户协议状态
     const [isAgreement, setIsAgreement] = useState(false);
-    // 从 store 里结构出登录方法
-    const { loginWithPhone } = useAuthStore();
+
+    // 从 store 里解构出登录方法、openid、是否绑定手机号
+    const { loginOnBound, login, openid, isBound } = useAuthStore();
 
     return (
         <ActionSheet
@@ -23,7 +36,8 @@ const LoginActionSheet = ({ isVisible, setIsVisible }) => {
                 <Button
                     className="w-full"
                     type="primary"
-                    openType={isAgreement ? 'getPhoneNumber' : undefined} // 只有同意协议时才启用手机号授权
+                    // 只有同意协议时才启用手机号授权
+                    openType={isAgreement && !isBound ? 'getPhoneNumber' : undefined} 
                     onClick={(_e) => {
                         if (!isAgreement) {
                             Taro.showToast({
@@ -32,8 +46,12 @@ const LoginActionSheet = ({ isVisible, setIsVisible }) => {
                             });
                             return;
                         }
+                        if (isBound) {
+                            login(openid); 
+                        }
+                        setIsVisible(false);
                     }}
-                    onGetPhoneNumber={loginWithPhone}
+                    onGetPhoneNumber={(e) => loginOnBound(e, openid)}
                 >
                     手机号码一键登录 
                 </Button>

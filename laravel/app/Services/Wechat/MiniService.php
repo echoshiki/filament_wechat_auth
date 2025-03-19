@@ -7,6 +7,7 @@ use App\Services\Wechat\Support\BaseWechatService;
 use App\Services\Interfaces\WechatServiceInterface;
 
 use EasyWeChat\MiniApp\Application;
+use Illuminate\Support\Facades\Log;
 
 class MiniService extends BaseWechatService implements WechatServiceInterface
 {
@@ -14,6 +15,7 @@ class MiniService extends BaseWechatService implements WechatServiceInterface
     // 继承基础类配置，使用 easywechat 初始化小程序应用
     public function initApp(): void
     {
+        // 读取到了配置
         $this->appInstance = new Application($this->config);
     }
 
@@ -21,10 +23,11 @@ class MiniService extends BaseWechatService implements WechatServiceInterface
      * 获取会话信息
      * 返回值示例
      * {
-     *     "errcode": 0,
-     *     "errmsg": "ok",
-     *     "session_key": "xxxxxx",
-     *     "open_id": "xxxxxx"
+     *    "openid":"xxxxxx",
+     *    "session_key":"xxxxx",
+     *    "unionid":"xxxxx",
+     *    "errcode":0,
+     *    "errmsg":"xxxxx"
      * }
      */
     public function getSession(string $code): array
@@ -32,9 +35,12 @@ class MiniService extends BaseWechatService implements WechatServiceInterface
         // $this->appInstance 由基础类封装在 callApi() 中
         // 直接调用 callApi 即可
         return $this->callApi(function (Application $app) use ($code) {
-            return $app->getClient()->postJson('/sns/jscode2session', [
-                'code' => $code,
-            ]);
+
+            // Log::info('请求 getSession 方法', ['code' => $code, 'config' => $this->config, 'app'=> $app]);
+
+            $response = $app->getUtils()->codeToSession($code);
+            return $response;
+
         }, 'jscode2session');
     }
 
@@ -58,9 +64,13 @@ class MiniService extends BaseWechatService implements WechatServiceInterface
     public function getPhoneNumber(string $code): array
     {
         return $this->callApi(function (Application $app) use ($code) {
-            return $app->getClient()->postJson('wxa/business/getuserphonenumber', [
+            $response = $app->getClient()->postJson('wxa/business/getuserphonenumber', [
                 'code' => $code,
             ]);
+            Log::info('getPhoneNumber 返回值', ['response' => $response]);
+
+            return $response->toArray();
+
         }, 'getuserphonenumber');
     }
 }

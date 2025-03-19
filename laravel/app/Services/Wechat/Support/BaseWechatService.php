@@ -27,7 +27,7 @@ abstract class BaseWechatService
     abstract protected function initApp(): void;
 
     protected function validateConfig(): void
-    {
+    {    
         if (empty($this->config['app_id']) || empty($this->config['secret'])) {
             throw new \InvalidArgumentException('微信配置不完整，缺少必要参数.');
         }
@@ -49,5 +49,4 @@ abstract class BaseWechatService
             throw new \RuntimeException("调用微信 API {$apiName} 失败：{$e->getMessage()}");
         }
     }
-
 }

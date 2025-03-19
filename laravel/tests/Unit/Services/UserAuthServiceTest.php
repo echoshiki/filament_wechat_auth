@@ -92,7 +92,7 @@ class UserAuthServiceTest extends TestCase
         $this->assertInstanceOf(User::class, $wechatUser->user);
         
         // 断言数据库中存在对应的微信用户和关联的用户
-        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
+        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['openid']]);
         $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
     }
 
@@ -111,7 +111,7 @@ class UserAuthServiceTest extends TestCase
         // 创建一个微信用户
         $this->wechatUser->create([
             'user_id' => null,
-            'openid' => $this->sessionData['open_id'],
+            'openid' => $this->sessionData['openid'],
             'session_key' => $this->sessionData['session_key']
         ]);
 
@@ -123,7 +123,7 @@ class UserAuthServiceTest extends TestCase
         $this->assertInstanceOf(User::class, $wechatUser->user);
         
         // 断言数据库中存在对应的微信用户和关联的用户
-        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
+        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['openid']]);
         $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
     }
 
@@ -150,7 +150,7 @@ class UserAuthServiceTest extends TestCase
         // 创建一个微信用户并关联上面的用户
         $wechatUser = $this->wechatUser->create([
             'user_id' => $user->id,
-            'openid' => $this->sessionData['open_id'],
+            'openid' => $this->sessionData['openid'],
             'session_key' => $this->sessionData['session_key']
         ]);
 
@@ -162,7 +162,7 @@ class UserAuthServiceTest extends TestCase
         $this->assertInstanceOf(User::class, $wechatUser->user);
         
         // 断言数据库中存在对应的微信用户和关联的用户
-        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
+        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['openid']]);
         $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
     }
 

@@ -7,8 +7,7 @@
 
 interface UserInfoProps {
     id: string,
-    openid: string,
-    nickname: string,
+    name: string,
     phone: string,
     avatar: string
 }

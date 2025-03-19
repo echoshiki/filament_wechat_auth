@@ -29,14 +29,14 @@ class UserAuthService
         $session = $this->wechatService->getSession($code);
 
         // 数据验证
-        if (empty($session['open_id']) || empty($session['session_key'])) {
+        if (empty($session['openid']) || empty($session['session_key'])) {
             Log::error('微信会话数据无效', ['session' => $session]);
             throw new \Exception('无效的微信会话数据');
         }
 
         // 检索微信用户以及他所关联的主表用户
         $wechatUser = $this->wechatUserModel->with('user')
-            ->where('openid', $session['open_id'])
+            ->where('openid', $session['openid'])
             ->first();
 
         if (!$wechatUser) {
@@ -64,7 +64,7 @@ class UserAuthService
                 $user = $this->userModel->create(self::buildNewUserAttributes());
                 $wechatUser = $this->wechatUserModel->create([
                     'user_id' => $user->id,
-                    'openid' => $session['open_id'],
+                    'openid' => $session['openid'],
                     'session_key' => $session['session_key']
                 ]);
                 $wechatUser->load('user');
@@ -153,6 +153,7 @@ class UserAuthService
             throw new \Exception('微信用户的关联用户不存在');
         }
         $this->bindPhoneNumber($code, $user);
+
         return $user;
     }
 

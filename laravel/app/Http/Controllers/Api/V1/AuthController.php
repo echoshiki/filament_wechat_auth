@@ -4,8 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Http\Requests\Api\V1\MiniLoginRequest;
+
 use App\Services\UserAuthService;
+use App\Http\Resources\UserResource;
+
+use App\Http\Requests\Api\V1\LoginInSilenceRequest;
+use App\Http\Requests\Api\V1\LoginOnBoundRequest;
+use App\Http\Requests\Api\V1\LoginRequest;
 
 class AuthController extends Controller
 {
@@ -17,18 +22,14 @@ class AuthController extends Controller
     /**
      * 静默登录
      * 小程序启动时触发，判断处理创建/关联用户逻辑
-     * @param MiniLoginRequest $request
+     * @param AuthRequest $request
      * @return array 返回加密后的 openid 和是否绑定手机号 isBound
      */
-    public function miniLoginInSilence(MiniLoginRequest $request)
+    public function miniLoginInSilence(LoginInSilenceRequest $request)
     {
-        // 验证类验证输入
-        $validated = $request->validated();
-        
         try {
             // 处理微信登录
-            $wechatUser = $this->userAuthService->handleLoginInSilence($validated['code']);
-            
+            $wechatUser = $this->userAuthService->handleLoginInSilence($request['code']);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => '微信登录失败',
@@ -42,33 +43,26 @@ class AuthController extends Controller
         ]);
     }
 
-
     /**
      * 小程序登录（未绑定手机号）
      * isBound = false | 登录框微信手机组件按钮触发
      * @param Request $request
      * @return array 返回登录态 token 和用户信息
      */
-    public function miniLoginOnBound(Request $request) 
+    public function miniLoginOnBound(LoginOnBoundRequest $request) 
     {
-        // 验证类验证输入
-        $validated = $request->validate([
-            'code' => 'required|string',
-            'openid' => 'required|string'
-        ]);
-
         try {
             // 绑定手机号流程
             $user = $this->userAuthService->handleLoginOnBound(
-                decrypt($validated['openid']), 
-                $validated['code']
+                $request['openid'], 
+                $request['code']
             );
 
             // 生成 token
             $token = $this->userAuthService->generateToken($user, 'mini');
 
             return response()->json([
-                'user' => $user,
+                'user' => new UserResource($user),
                 'token' => $token
             ]);
 
@@ -86,24 +80,19 @@ class AuthController extends Controller
      * @param Request $request
      * @return array 返回登录态 token 和用户信息
      */
-    public function miniLogin(Request $request)
+    public function miniLogin(LoginRequest $request)
     {
-        // 验证类验证输入
-        $validated = $request->validate([
-            'openid' => 'required|string'
-        ]);
-
         try {
             // 直接查询出用户
             $user = $this->userAuthService->handleLogin(
-                decrypt($validated['openid'])
+                $request['openid']
             );
 
             // 生成 token
             $token = $this->userAuthService->generateToken($user, 'mini');
 
             return response()->json([
-                'user' => $user,
+                'user' => new UserResource($user),
                 'token' => $token
             ]);
 

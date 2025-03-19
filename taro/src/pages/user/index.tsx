@@ -1,5 +1,4 @@
 import { View, Text, Image, Button } from "@tarojs/components";
-import defaultAvatar from '@/assets/images/default-avatar.svg';
 import avatarRightImg from '@/assets/images/avatar-right-img.svg';
 import bottomImg from '@/assets/images/center-bottom-img.svg';
 
@@ -24,7 +23,6 @@ import useAuthStore from "@/stores/auth";
 import UserInfoProps from "@/types/user";
 
 import { useState } from "react";
-import { GetPhoneNumberEvent } from "./props";
 
 import Taro from "@tarojs/taro";
 import LoginActionSheet from "@/componets/LoginLayout";
@@ -90,27 +88,28 @@ const menu_col_02 = [
  */
 const UserInfo = ({ userInfo }: {
     userInfo: UserInfoProps | null
-    onGetPhoneNumber: (e: GetPhoneNumberEvent, isAgreement: boolean) => void
 }) => {
     // 登录框状态
     const [isVisible, setIsVisible] = useState(false);
 
+    console.log('isVisible', isVisible);
+
     return (
         <View className="max-w-screen-md mx-auto rounded-xl shadow-sm flex flex-nowrap w-full p-4 justify-between items-center bg-white">
             <View className="flex flex-nowrap space-x-3">
-                <View className="w-12 h-12 border border-gray-300 rounded-full">
+                {/* <View className="w-12 h-12 border border-gray-300 rounded-full">
                     <Image
                         className="w-full h-full"
                         src={userInfo?.avatar || defaultAvatar}
                     />
-                </View>
+                </View> */}
                 {userInfo ? (
                     <View className="flex flex-col justify-center">
                         <Text className="text-lg font-semibold">
-                            {userInfo.nickname}
+                            {userInfo.name}
                         </Text>
                         <Text className="text-xs font-light text-gray-600">
-                            ID:{userInfo.id}
+                            {userInfo.phone}
                         </Text>
                     </View> 
                 ) : (
@@ -146,40 +145,20 @@ const UserInfo = ({ userInfo }: {
  */
 const UserCenter = () => {
 
-    const { userInfo, loginTest, logout, token } = useAuthStore();
+    const { openid, isBound, userInfo, logout, token } = useAuthStore();
 
-    console.log('当前store中的token:', token);
-
-    const handleGetPhoneNumber = async (e: GetPhoneNumberEvent) => { 
-        try {
-            const loginRes = await Taro.login();
-            console.log(loginRes);
-
-            if (e.detail.errMsg === 'getPhoneNumber:ok') {
-                console.log(e.detail);
-            }
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
+    console.log('当前 store 中的 openid:', openid);
+    console.log('当前 store 中的 isBound:', isBound);
+    console.log('当前 store 中的 token:', token);
+    console.log('当前 store 中的 userInfo:', userInfo);
+    
     const testApi = async () => {
         const response = await http.request({
-            url: '/addons/wxauth/index/login',
-            method: 'POST',
-            data: {
-                login_code: '1',
-                phone_code: '2'
-            }
-        })
+            url: '/api/v1/login-bound',
+            method: 'POST'
+        });
+        Taro.showToast({ title: response.message, icon: 'none' });
         console.log(response);
-
-        if (response.data.token) {
-            loginTest(response.data.token, response.data.userInfo);
-            Taro.showToast({ title: '登录成功', icon: 'success' });
-        } else {
-            throw new Error('登录失败');
-        }
     }
 
     const testGetUser = async () => {
@@ -197,18 +176,13 @@ const UserCenter = () => {
             {/* 用户信息块 */}
             <View className="before:(relative block w-full h-32 bg-gray-950 mb-12)">
                 <View className="absolute w-full bottom-[-2rem] px-5">
-                    <UserInfo 
-                        userInfo={userInfo} 
-                        onGetPhoneNumber={handleGetPhoneNumber}
-                    />
+                    <UserInfo userInfo={userInfo} />
                 </View>
             </View>
 
-
-            <Button onClick={testApi}>Test Login</Button>
+            <Button onClick={testApi}>Test Api</Button>
             <Button onClick={testGetUser}>getUserInfo</Button>
             <Button onClick={logout}>Test Logout</Button>
-            
 
             {/* 横向菜单块 */}  
             <MenuRow menuList={menu_row} />

@@ -89,8 +89,8 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(200)->assertJsonStructure(['openid', 'isBound']);
 
         // 断言数据库中存在对应的微信用户记录
-        $wechatUser = $this->wechatUser->where('openid', $this->sessionData['open_id'])->first();
-        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['open_id']]);
+        $wechatUser = $this->wechatUser->where('openid', $this->sessionData['openid'])->first();
+        $this->assertDatabaseHas('wechat_users', ['openid' => $this->sessionData['openid']]);
 
         // 是否存在关联用户
         $this->assertDatabaseHas('users', ['id' => $wechatUser->user_id]);
