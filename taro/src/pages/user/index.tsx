@@ -1,4 +1,4 @@
-import { View, Text, Image, Button } from "@tarojs/components";
+import { View, Text, Image } from "@tarojs/components";
 import avatarRightImg from '@/assets/images/avatar-right-img.svg';
 import bottomImg from '@/assets/images/center-bottom-img.svg';
 
@@ -21,18 +21,13 @@ import BottomCopyright from "@/componets/Copyright";
 
 import useAuthStore from "@/stores/auth";
 import UserInfoProps from "@/types/user";
-
-import { useState } from "react";
-
-import Taro from "@tarojs/taro";
-import LoginActionSheet from "@/componets/LoginLayout";
-import { http } from "@/utils/request";
+import { checkLogin } from "@/utils/auth";
 
 const menu_row = [
     {
         title: '我的报名',
         icon: formBigIcon,
-        url: '/pages/user/order/index'
+        url: '/pages/index/index'
     },
     {
         title: '我的订单',
@@ -69,18 +64,6 @@ const menu_col_01 = [
     }
 ];
 
-const menu_col_02 = [
-    {
-        title: '个人资料',
-        icon: editorIcon,
-        url: '/pages/user/order/index'
-    },
-    {
-        title: '联系我们',
-        icon: phoneIcon,
-        url: '/pages/user/order/index'
-    },
-];
 
 /**
  * 包含昵称、头像以及右边图片的用户信息块
@@ -89,45 +72,30 @@ const menu_col_02 = [
 const UserInfo = ({ userInfo }: {
     userInfo: UserInfoProps | null
 }) => {
-    // 登录框状态
-    const [isVisible, setIsVisible] = useState(false);
-
-    console.log('isVisible', isVisible);
 
     return (
         <View className="max-w-screen-md mx-auto rounded-xl shadow-sm flex flex-nowrap w-full p-4 justify-between items-center bg-white">
             <View className="flex flex-nowrap space-x-3">
-                {/* <View className="w-12 h-12 border border-gray-300 rounded-full">
-                    <Image
-                        className="w-full h-full"
-                        src={userInfo?.avatar || defaultAvatar}
-                    />
-                </View> */}
                 {userInfo ? (
-                    <View className="flex flex-col justify-center">
+                <View className="flex flex-col justify-center">
+                    <Text className="text-lg font-semibold">
+                        {userInfo.name}
+                    </Text>
+                    <Text className="text-sm font-light text-gray-600">
+                        {userInfo.phone}
+                    </Text>
+                </View> 
+                ) : (
+                <View>
+                    <View className="flex flex-col justify-center" onClick={() => checkLogin()}>
                         <Text className="text-lg font-semibold">
-                            {userInfo.name}
+                            未登录
                         </Text>
                         <Text className="text-xs font-light text-gray-600">
-                            {userInfo.phone}
+                            点击立即授权登录
                         </Text>
-                    </View> 
-                ) : (
-                    <View>
-                        <View className="flex flex-col justify-center" onClick={() => setIsVisible(true)}>
-                            <Text className="text-lg font-semibold">
-                                未登录
-                            </Text>
-                            <Text className="text-xs font-light text-gray-600">
-                                点击立即授权登录
-                            </Text>
-                        </View>
-                        {/* 登录框 */}
-                        <LoginActionSheet 
-                            isVisible={isVisible} 
-                            setIsVisible={setIsVisible}
-                        />
                     </View>
+                </View>
                 )}
             </View>
             <View>
@@ -147,29 +115,39 @@ const UserCenter = () => {
 
     const { openid, isBound, userInfo, logout, token } = useAuthStore();
 
+    const menu_col_02 = [
+        {
+            title: '个人资料',
+            icon: editorIcon,
+            url: '/pages/user/order/index'
+        },
+        {
+            title: '联系我们',
+            icon: phoneIcon,
+            url: '/pages/user/order/index'
+        },
+        {
+            title: '退出登录',
+            icon: phoneIcon,
+            onClick: () => {
+                logout();
+            }
+        },
+    ];
+    
     console.log('当前 store 中的 openid:', openid);
     console.log('当前 store 中的 isBound:', isBound);
     console.log('当前 store 中的 token:', token);
     console.log('当前 store 中的 userInfo:', userInfo);
     
-    const testApi = async () => {
-        const response = await http.request({
-            url: '/api/v1/login-bound',
-            method: 'POST'
-        });
-        Taro.showToast({ title: response.message, icon: 'none' });
-        console.log(response);
-    }
-
-    const testGetUser = async () => {
-        // 没携带 token
-        const response = await http.request({
-            url: '/addons/wxauth/index/info',
-            method: 'POST',
-            data: {}
-        })
-        console.log(response);
-    }
+    // 测试接口
+    // const testApi = async () => {
+    //     const response = await http.request({
+    //         url: '/api/v1/user',
+    //         method: 'POST'
+    //     });
+    //     console.log(response);
+    // }
 
     return (
         <View className="bg-gray-100 min-h-screen pb-10">
@@ -179,10 +157,6 @@ const UserCenter = () => {
                     <UserInfo userInfo={userInfo} />
                 </View>
             </View>
-
-            <Button onClick={testApi}>Test Api</Button>
-            <Button onClick={testGetUser}>getUserInfo</Button>
-            <Button onClick={logout}>Test Logout</Button>
 
             {/* 横向菜单块 */}  
             <MenuRow menuList={menu_row} />

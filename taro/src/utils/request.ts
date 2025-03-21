@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro'
 import useAuthStore from '@/stores/auth'
+import { getCurrentPageUrl } from './common'
 
 // 继承 Taro 原生请求类型，额外增加拦截器类型
 // 拦截器分别传入请求或者响应到各自的方法内进行修改
@@ -51,6 +52,7 @@ class HttpRequest {
         const defaultConfig: Partial<RequestConfig> = {
             header: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 Authorization: authStore.token ? `Bearer ${authStore.token}` : ''
             },
             timeout: 15000
@@ -93,8 +95,12 @@ class HttpRequest {
     // 过期或者授权失败重新登录
     private handleAuthError(error: any) {
         if (error.code === 401) {
-            useAuthStore.getState().logout()
-            Taro.navigateTo({ url: '/pages/login/index' })
+            const redirectUrl = getCurrentPageUrl();
+            console.log('redirectUrl', redirectUrl);
+            useAuthStore.getState().logout();
+            Taro.navigateTo({ 
+                url: `/pages/login/index?redirect=${redirectUrl}` 
+            });
         }
     }
 

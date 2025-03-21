@@ -1,11 +1,12 @@
 interface menuItemProps {
     title: string,
     icon: string,
-    url: string,
+    url?: string,
+    onClick?: () => void,
 }
 
 interface menuListProps {
     menuList: menuItemProps[]
 }
 
-export default menuListProps;
+export { menuListProps, menuItemProps };

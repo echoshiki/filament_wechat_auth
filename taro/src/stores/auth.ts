@@ -1,9 +1,11 @@
+import Taro from "@tarojs/taro";
 import { create } from "zustand";
 import { persist } from 'zustand/middleware';
 
-import UserInfoProps from "@/types/user";
-import Taro from "@tarojs/taro";
 import { http } from "@/utils/request";
+import { mapsTo } from "@/utils/common";
+
+import UserInfoProps from "@/types/user";
 
 interface AuthStoreProps{
     openid: string | null;
@@ -11,15 +13,23 @@ interface AuthStoreProps{
     token: string | null;
     userInfo: UserInfoProps | null;
     loginInSilence: () => Promise<void>;
-    loginOnBound: (e, currentOpenid) => Promise<void>;
-    login: (currentOpenid) => Promise<void>;
+    loginOnBound: (
+        e: any, 
+        currentOpenid: string | null, 
+        redirectUrl?: string
+    ) => Promise<void>;
+    login: (
+        currentOpenid: string | null, 
+        redirectUrl?: string
+    ) => Promise<void>;
     logout: () => void;
+    isLoggedIn: () => boolean;
 }
 
 const useAuthStore = create<AuthStoreProps>()(
     // 用于将状态持久化的中间件
     persist(
-        (set) => ({
+        (set, get) => ({
             openid: null,
             isBound: null,
             token: null,
@@ -54,9 +64,8 @@ const useAuthStore = create<AuthStoreProps>()(
                 }
             },
 
-            loginOnBound: async (e, currentOpenid: string) => {
+            loginOnBound: async (e, currentOpenid, redirectUrl?) => {
                 try {
-
                     if (!currentOpenid) {
                         throw new Error('loginOnBound - 未获取到 openid');
                     }
@@ -76,12 +85,16 @@ const useAuthStore = create<AuthStoreProps>()(
                         }
                     });
 
-                    console.log('绑定手机号的登录响应 response', response);
-
                     // 获取后存入本地
                     if (response?.token) {
                         set({ token: response.token, userInfo: response.user });
                         Taro.showToast({ title: '登录成功', icon: 'success' });
+
+                        setTimeout(() => {
+                            // 自定义跳转
+                            mapsTo(redirectUrl || '/pages/index/index');
+                        }, 1000);
+
                     } else {
                         throw new Error('登录失败');
                     }
@@ -91,11 +104,8 @@ const useAuthStore = create<AuthStoreProps>()(
                 }
             },
 
-            login: async (currentOpenid: string) => {
+            login: async (currentOpenid, redirectUrl?) => {
                 try {
-
-                    console.log('正常登录 currentOpenid', currentOpenid);
-
                     // 未获取到 openid
                     if (!currentOpenid) {
                         throw new Error('login - 未获取到 openid');
@@ -116,6 +126,12 @@ const useAuthStore = create<AuthStoreProps>()(
                     if (response?.token) {
                         set({ token: response.token, userInfo: response.user });
                         Taro.showToast({ title: '登录成功', icon: 'success' });
+
+                        setTimeout(() => {
+                            // 自定义跳转
+                            mapsTo(redirectUrl || '/pages/index/index');
+                        }, 1000);
+                        
                     } else {
                         throw new Error('登录失败');
                     }
@@ -126,13 +142,22 @@ const useAuthStore = create<AuthStoreProps>()(
                 }
             },
 
-            logout: () => set({ 
-                token: null, 
-                userInfo: null,
-                // 测试用
-                openid: null,
-                isBound: null
-            })
+            logout: async () => {
+                try {
+                    await http.request({
+                        url: '/api/v1/logout',
+                        method: 'POST'
+                    });
+                    set({ 
+                        token: null, 
+                        userInfo: null
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            },
+
+            isLoggedIn: () => !!get().token
         }),
         {
             name: 'auth-storage',

@@ -103,4 +103,27 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * 退出登录
+     * @param Request $request
+     * @return array 返回退出登录状态
+     */
+    public function logout(Request $request)
+    {
+        try {
+            // 退出登录
+            $request->user()->tokens()->delete();
+            
+            return response()->json([
+                'message' => '退出登录成功'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => '退出登录失败',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
