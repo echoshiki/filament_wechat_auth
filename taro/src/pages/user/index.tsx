@@ -1,5 +1,5 @@
 import { View, Text, Image } from "@tarojs/components";
-import avatarRightImg from '@/assets/images/avatar-right-img.svg';
+import avatarRightImg from '@/assets/images/avatar-right-img.png';
 import bottomImg from '@/assets/images/center-bottom-img.svg';
 
 // 横向大图标
@@ -62,7 +62,7 @@ const UserInfo = ({ userInfo }: {
                     <Text className="text-lg font-semibold">
                         {userInfo.name}
                     </Text>
-                    <Text className="text-sm font-light text-gray-600">
+                    <Text className="text-xs font-light font-mono text-gray-600">
                         {userInfo.phone}
                     </Text>
                 </View> 
@@ -79,9 +79,9 @@ const UserInfo = ({ userInfo }: {
                 </View>
                 )}
             </View>
-            <View>
+            <View className="py-2">
                 <Image
-                    className="w-20 h-20"
+                    className="w-24 h-16"
                     src={avatarRightImg}
                 />
             </View>
