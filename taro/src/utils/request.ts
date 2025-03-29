@@ -97,7 +97,7 @@ class HttpRequest {
         if (error.code === 401) {
             const redirectUrl = getCurrentPageUrl();
             console.log('redirectUrl', redirectUrl);
-            useAuthStore.getState().logout();
+            // useAuthStore.getState().logout();
             Taro.navigateTo({ 
                 url: `/pages/login/index?redirect=${redirectUrl}` 
             });

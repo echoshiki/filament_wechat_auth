@@ -9,11 +9,11 @@ import favoriteBigIcon from '@/assets/icons/gift-icon.svg';
 import serviceBigIcon from '@/assets/icons/service-icon.svg';
 
 // 列表图标
-import formIcon from '@/assets/icons/form-icon.svg';
 import phoneIcon from '@/assets/icons/phone-icon.svg';
-import favoriteIcon from '@/assets/icons/favorite-icon.svg';
-import orderIcon from '@/assets/icons/order-icon.svg';
-import editorIcon from '@/assets/icons/editor-icon.svg';
+import agreementIcon from '@/assets/icons/agreement-icon.svg';
+import billIcon from '@/assets/icons/bill-icon.svg';
+import settingIcon from '@/assets/icons/setting-icon.svg';
+import logoutIcon from '@/assets/icons/logout-icon.svg';
 
 import MenuRow from "@/componets/Menu/MenuRow";
 import MenuColumn from "@/componets/Menu/MenuColumn";
@@ -44,26 +44,7 @@ const menu_row = [
         icon: serviceBigIcon,
         url: '/pages/user/order/index'
     }
-]
-
-const menu_col_01 = [
-    {
-        title: '我的报名',
-        icon: formIcon,
-        url: '/pages/user/order/index'
-    },
-    {
-        title: '我的订单',
-        icon: orderIcon,
-        url: '/pages/user/order/index'
-    },
-    {
-        title: '收藏夹',
-        icon: favoriteIcon,
-        url: '/pages/user/order/index'
-    }
 ];
-
 
 /**
  * 包含昵称、头像以及右边图片的用户信息块
@@ -118,17 +99,27 @@ const UserCenter = () => {
     const menu_col_02 = [
         {
             title: '个人资料',
-            icon: editorIcon,
+            icon: settingIcon,
             url: '/pages/user/order/index'
         },
         {
-            title: '联系我们',
+            title: '热线电话',
             icon: phoneIcon,
+            url: '/pages/user/order/index'
+        },
+        {
+            title: '隐私政策',
+            icon: billIcon,
+            url: '/pages/user/order/index'
+        },
+        {
+            title: '用户协议',
+            icon: agreementIcon,
             url: '/pages/user/order/index'
         },
         {
             title: '退出登录',
-            icon: phoneIcon,
+            icon: logoutIcon,
             onClick: () => {
                 logout();
             }
@@ -162,7 +153,6 @@ const UserCenter = () => {
             <MenuRow menuList={menu_row} />
 
             {/* 条目菜单块 */}
-            <MenuColumn menuList={menu_col_01} />
             <MenuColumn menuList={menu_col_02} />
 
             {/* 底部版权信息 */}
